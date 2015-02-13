@@ -1,7 +1,7 @@
-define('View',['jquery', 'animojs'], function(){
-	return View;
+define('NavigatorView',['jquery', 'animojs'], function(){
+	return NavigatorView;
 	
-	function View(args){
+	function NavigatorView(args){
 		var controller = args.controller;		
 		
 		// el's
@@ -52,16 +52,16 @@ define('View',['jquery', 'animojs'], function(){
 		init();
 	}
 });
-define('Controller',['View', 'underscore', 'backbone', 'parsequery', 'jquery'], function(View){
-	return Controller;
+define('NavigatorController',['NavigatorView', 'underscore', 'backbone', 'parsequery', 'jquery'], function(NavigatorView){
+	return NavigatorController;
 	
 	/**
 	 * Initializes backbone-router and start Backbone.history. 
 	 * 
 	 */
-	function Controller(){
+	function NavigatorController(args){
 		var scope = this;
-		var view = new View({controller: this});		
+		var view = new NavigatorView({controller: this});		
 		var currentContentController = undefined;		
 		var router = undefined; // Backbone.Router
 		var pageRootPath = ''; // is set to page's root path (form where it is served)
@@ -70,8 +70,13 @@ define('Controller',['View', 'underscore', 'backbone', 'parsequery', 'jquery'], 
 		this.defaultContent = undefined;
 		this.targetContent = '.container.content';
 		
-		function init(){
+		function init(args){
+			scope.applyOptions(args);
 			initRouter();
+		}
+		
+		this.applyOptions = function(args){
+			_.extend(this, _.pick(args, ['contentRegister', 'defaultContent', 'targetContent']));
 		}
 		
 		function initRouter(){
@@ -93,7 +98,7 @@ define('Controller',['View', 'underscore', 'backbone', 'parsequery', 'jquery'], 
 			pageRootPath = pageRootPath || path; // first time-set
 			var urlState = jQuery.parseQuery(query);
 			urlState.content = urlState.content || scope.defaultContent;
-			var controllerUri = contentRegister[urlState.content];			
+			var controllerUri = scope.contentRegister[urlState.content];			
 			if(!controllerUri){
 				throw new Error('This content-name is not registered, '+urlState.content);
 			}
@@ -179,10 +184,9 @@ define('BaseContentView',['jquery'], function(){
 		};
 	}	
 });
-define('main',['Controller', 'BaseContentController', 'BaseContentView', 'underscore'],
-function(Controller, BaseContentController, BaseContentView){
-	var instance = new Controller();
-	//'jquery', 'underscore', 'backbone', 'parseQuery', 'css!animate', 'animojs'
+define('alfnavigator',['NavigatorController', 'BaseContentController', 'BaseContentView', 'underscore'],
+function(NavigatorController, BaseContentController, BaseContentView){
+	var instance = undefined;
 	
 	/**
 	 * @param args : {contentRegister: ContentRegister,
@@ -192,7 +196,11 @@ function(Controller, BaseContentController, BaseContentView){
 	 *   example: 'complexes': 'contents/complexes/ComplexesContentController'
 	 */
 	var navigator = function (args){
-		_.extend(instance, _.pick(args, ['contentRegister', 'defaultContent', 'targetContent']));
+		if(!instance){
+			instance = new NavigatorController(args);
+		} else{
+			instance.applyOptions(args);
+		}
 		return instance;
 	};
 	

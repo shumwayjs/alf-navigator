@@ -10,7 +10,7 @@
         "requirejs": "empty:",
         "underscore": "empty:"
     },   
-    name: "main",
+    name: "alfnavigator",
     out: "alfnavigator.js",
     optimize: 'none'
 })
