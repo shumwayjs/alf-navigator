@@ -1,7 +1,7 @@
 {
-  "name"          : "alf-navigator",
+  "name"          : "alfnavigator",
   "version"       : "1.0",
-  "main"          : "alf-navigator.js",
+  "main"          : "alfnavigator.js",
   "dependencies"  : {
     "backbone"  : ">=1.1.2",
     "jquery":">=2.1.3",

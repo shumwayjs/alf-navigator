@@ -105,7 +105,14 @@ define('Controller',['View', 'underscore', 'backbone', 'parsequery', 'jquery'], 
 					              view.createShowContentTask(currentContentController)]);
 				});
 			});
-		}	
+		}
+		
+		/**
+		 * @param navTarget : via name as registered in 'contentRegister'
+		 */
+		this.navigate = function(navTarget){
+			router.navigate(pageRootPath+'?'+jQuery.param({content:navTarget}), {trigger: true});
+		};
 		
 		init();
 	}
