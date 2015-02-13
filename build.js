@@ -11,6 +11,6 @@
         "underscore": "empty:"
     },   
     name: "main",
-    out: "navigator.js",
+    out: "alf-navigator.js",
     optimize: 'none'
 })
