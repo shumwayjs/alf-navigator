@@ -52,7 +52,7 @@ define('NavigatorView',['jquery', 'animojs'], function(){
 		init();
 	}
 });
-define('NavigatorController',['NavigatorView', 'underscore', 'backbone', 'parsequery', 'jquery'], function(NavigatorView){
+define('NavigatorController',['NavigatorView', 'async', 'underscore', 'backbone', 'parsequery', 'jquery'], function(NavigatorView, async){
 	return NavigatorController;
 	
 	/**
@@ -61,17 +61,19 @@ define('NavigatorController',['NavigatorView', 'underscore', 'backbone', 'parseq
 	 */
 	function NavigatorController(args){
 		var scope = this;
-		var view = new NavigatorView({controller: this});		
+		var view = undefined;	
 		var currentContentController = undefined;		
 		var router = undefined; // Backbone.Router
 		var pageRootPath = ''; // is set to page's root path (form where it is served)
 		
 		this.contentRegister = {};		
 		this.defaultContent = undefined;
-		this.targetContent = '.container.content';
+		this.targetContent = '.content-container';
 		
-		function init(args){
-			scope.applyOptions(args);
+		function init(){
+			scope.applyOptions(args);			
+			_.bindAll.apply(_,[scope].concat(_.functions(scope)));
+			view = new NavigatorView({controller: scope});	
 			initRouter();
 		}
 		
@@ -103,8 +105,16 @@ define('NavigatorController',['NavigatorView', 'underscore', 'backbone', 'parseq
 				throw new Error('This content-name is not registered, '+urlState.content);
 			}
 			require([controllerUri], function(ContentController){		
+				if(ContentController.__esModule){
+					ContentController = ContentController[_.functions(ContentController)[0]];
+				}
+				
 				var formerContentController = currentContentController;
 				currentContentController = new ContentController(urlState);
+				if(!currentContentController.init){
+					throw new Error('ContentController '+currentContentController.constructor+' has no init-method, consider '+
+							' to inherit from a BaseContentController instance via alfnavigator.ContentController ');
+				}				
 				currentContentController.init(function(){
 					async.series([view.createHideContentTask(formerContentController),
 					              view.createShowContentTask(currentContentController)]);
@@ -122,31 +132,35 @@ define('NavigatorController',['NavigatorView', 'underscore', 'backbone', 'parseq
 		init();
 	}
 });
-define('BaseContentController',['underscore'], function(){
-	return BaseContentController;
-	
+define('BaseContentController',['underscore'], function(){	
 	/**
 	 * Abstract-layer for all content-controller.
 	 * @param args : urlState (query-params from current-url)
 	 */
-	function BaseContentController(args){
-		this.view = undefined;	
+	function BaseContentController(args){}
+	
+	BaseContentController.prototype = {
+		view: undefined,  
 		
 		/**
 		 * Override in order to init controller.
+		 * Note, before the callback the view must be initialized.
 		 * @param callback : must be called to signal ready with init.
 		 */
-		this.init = function(callback){
+		init : function(callback){
 			callback();
-		};
+		},
 		
 		/**
 		 * Triggers the view to add initialized content ($el) to given $content.
 		 * @param $content, the content in which the view to render
 		 */
-		this.show = function($content){
+		show : function($content){
+			if(!this.view){
+				throw new Error('The controller '+this.constructor+' must initialize the view!');
+			}
 			this.view.show($content);
-		};		
+		},
 		
 		/**
 		 * Initializes given View-constructor with given args, this controller instance
@@ -154,55 +168,67 @@ define('BaseContentController',['underscore'], function(){
 		 * @param View - view-constructor
 		 * @param args - args to apply
 		 */
-		this.initPageViewTask = function(View, args){
+		initPageViewTask : function(View, args){
 			var scope = this;
 			args = _.extend({controller: this}, args);
 			return function(callback){			
 				scope.view = new View(args);
 				callback();			
 			};
-		};		
-		
+		}		
 	}
-});
-define('BaseContentView',['jquery'], function(){
-	return BaseContentView;
+	BaseContentController.prototype.constructor = BaseContentController;
 	
+	return BaseContentController;
+});
+define('BaseContentView',['jquery'], function(){	
 	/**
 	 * Abstract-layer for all content-views.
 	 * @param args : {html : 'html snippet which becomes $el'} 
 	 */
 	function BaseContentView(args){		
-		this.$el = jQuery(args.html); // view context
-		this.controller = args.controller;
-		
-		/**
-		 * @param $content : the content to add the view's $el
-		 */
-		this.show = function($content){
-			$content.append(this.$el);
-		};
-	}	
+		var scope = this;
+
+		function init(){
+			if(!args.html){
+				window.console && console.warn('Instances of BaseContentView should always be initialized with html-argument');
+			}
+			scope.$el = jQuery(args.html); // view context
+			scope.controller = args.controller;
+		}	
+
+		init();
+	}
+
+	BaseContentView.prototype = {
+			$el : undefined, // view context
+			controller : undefined,
+			/**
+			 * @param $content : the content to add the view's $el
+			 */
+			show : function($content){
+				$content.append(this.$el);
+			}
+	};
+	BaseContentView.prototype.constructor = BaseContentView;
+
+	return BaseContentView;
 });
 define('alfnavigator',['NavigatorController', 'BaseContentController', 'BaseContentView', 'underscore'],
-function(NavigatorController, BaseContentController, BaseContentView){
-	var instance = undefined;
-	
+function(NavigatorController, BaseContentController, BaseContentView){	
 	/**
+	 * Call to instantiate.
 	 * @param args : {contentRegister: ContentRegister,
 	 *                defaultContent: String (url-content-name),
 	 *                targetContent : String (the container-selector in which views are rendered, default:  '.container.content')}
 	 * ContentRegister : {url-content-name -> path-to-content-controller},
 	 *   example: 'complexes': 'contents/complexes/ComplexesContentController'
 	 */
-	var navigator = function (args){
-		if(!instance){
-			instance = new NavigatorController(args);
-		} else{
-			instance.applyOptions(args);
-		}
-		return instance;
-	};
+	var navigator = function (args){	
+		_.extend(navigator, new NavigatorController(args));
+		navigator.BaseContentController = BaseContentController;
+		navigator.BaseContentView = BaseContentView;
+	};		
 	
 	/**
 	 * Creates Constructor based on the given Constr but when initializing setting an instance of 

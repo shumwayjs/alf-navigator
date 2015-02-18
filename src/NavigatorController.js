@@ -1,4 +1,4 @@
-define(['NavigatorView', 'underscore', 'backbone', 'parsequery', 'jquery'], function(NavigatorView){
+define(['NavigatorView', 'async', 'underscore', 'backbone', 'parsequery', 'jquery'], function(NavigatorView, async){
 	return NavigatorController;
 	
 	/**
@@ -7,17 +7,19 @@ define(['NavigatorView', 'underscore', 'backbone', 'parsequery', 'jquery'], func
 	 */
 	function NavigatorController(args){
 		var scope = this;
-		var view = new NavigatorView({controller: this});		
+		var view = undefined;	
 		var currentContentController = undefined;		
 		var router = undefined; // Backbone.Router
 		var pageRootPath = ''; // is set to page's root path (form where it is served)
 		
 		this.contentRegister = {};		
 		this.defaultContent = undefined;
-		this.targetContent = '.container.content';
+		this.targetContent = '.content-container';
 		
-		function init(args){
-			scope.applyOptions(args);
+		function init(){
+			scope.applyOptions(args);			
+			_.bindAll.apply(_,[scope].concat(_.functions(scope)));
+			view = new NavigatorView({controller: scope});	
 			initRouter();
 		}
 		
@@ -49,8 +51,16 @@ define(['NavigatorView', 'underscore', 'backbone', 'parsequery', 'jquery'], func
 				throw new Error('This content-name is not registered, '+urlState.content);
 			}
 			require([controllerUri], function(ContentController){		
+				if(ContentController.__esModule){
+					ContentController = ContentController[_.functions(ContentController)[0]];
+				}
+				
 				var formerContentController = currentContentController;
 				currentContentController = new ContentController(urlState);
+				if(!currentContentController.init){
+					throw new Error('ContentController '+currentContentController.constructor+' has no init-method, consider '+
+							' to inherit from a BaseContentController instance via alfnavigator.ContentController ');
+				}				
 				currentContentController.init(function(){
 					async.series([view.createHideContentTask(formerContentController),
 					              view.createShowContentTask(currentContentController)]);

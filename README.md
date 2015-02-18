@@ -2,7 +2,7 @@
 Navigator for single-page apps giving maximal freedomness in implementation.
 
 - page navigations must be registered in 'contentRegister'
-  which maps the navigation names as used in url to a contentController 
+  which maps the navigation names as used in url to a contentController
   instance.
 - navigation results in replacing the content in container as specified by
   'targetContainer'
@@ -18,6 +18,19 @@ Navigator for single-page apps giving maximal freedomness in implementation.
   The contentView has a {html: string} argument for the html-content which it uses
   to create its el.
   To both method, constructors are given which implement the specific controller/view.
-  
-  
-  
+
+  Initiate the navigator:
+  navigator({...options});
+
+  Use the navigator:
+  navigator
+
+  New mvc's which shall become navigation target must be registered in navigator.contentRegister
+
+  Note, in order to set-up animo.js correctly you'll need the dependency
+  to animate.css
+  Register in requirejs.config:
+  a path: 'animate': '../libs/animate.css/animate'
+  a shim: 'animojs':{
+    		deps: ['jquery', 'animate']
+    	}

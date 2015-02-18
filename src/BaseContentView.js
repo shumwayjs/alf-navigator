@@ -1,19 +1,33 @@
-define(['jquery'], function(){
-	return BaseContentView;
-	
+define(['jquery'], function(){	
 	/**
 	 * Abstract-layer for all content-views.
 	 * @param args : {html : 'html snippet which becomes $el'} 
 	 */
 	function BaseContentView(args){		
-		this.$el = jQuery(args.html); // view context
-		this.controller = args.controller;
-		
-		/**
-		 * @param $content : the content to add the view's $el
-		 */
-		this.show = function($content){
-			$content.append(this.$el);
-		};
-	}	
+		var scope = this;
+
+		function init(){
+			if(!args.html){
+				window.console && console.warn('Instances of BaseContentView should always be initialized with html-argument');
+			}
+			scope.$el = jQuery(args.html); // view context
+			scope.controller = args.controller;
+		}	
+
+		init();
+	}
+
+	BaseContentView.prototype = {
+			$el : undefined, // view context
+			controller : undefined,
+			/**
+			 * @param $content : the content to add the view's $el
+			 */
+			show : function($content){
+				$content.append(this.$el);
+			}
+	};
+	BaseContentView.prototype.constructor = BaseContentView;
+
+	return BaseContentView;
 });
