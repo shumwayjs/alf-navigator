@@ -1,32 +1,32 @@
 define('NavigatorView',['jquery', 'animojs'], function(){
 	return NavigatorView;
-	
+
 	function NavigatorView(args){
-		var controller = args.controller;		
-		
+		var controller = args.controller;
+
 		// el's
-		var $el = jQuery('body');	
+		var $el = jQuery('body');
 		var $content = jQuery(controller.targetContent, $el);
-		
-		function init(){}		
+
+		function init(){}
 
 		/**
 		 * Shows content based on the given content-controller.
-		 * @param baseContentController : BaseContentController 
+		 * @param baseContentController : BaseContentController
 		 */
 		this.createShowContentTask = function(contentController){
-			return function(callback){				
+			return function(callback){
 				contentController.show($content);
-				contentController.view.$el.animo({				
-					animation: 'fadeInDown', 
-					duration: 0.3				
-				}, function(){					
+				contentController.view.$el.animo({
+					animation: 'fadeInDown',
+					duration: 0.3
+				}, function(){
 					callback && callback();
-				});			
-				
+				});
+
 			};
 		};
-		
+
 		/**
 		 * Triggers to hide the content of the given contentController.
 		 * @param contentController : BaseContentController
@@ -38,58 +38,59 @@ define('NavigatorView',['jquery', 'animojs'], function(){
 					callback();
 					return;
 				}
-				var $target = contentController.view.$el;			
-				contentController.view.$el.animo({				
-					animation: 'fadeOut', 
-					duration: 0.3				
+				var $target = contentController.view.$el;
+				contentController.view.$el.animo({
+					animation: 'fadeOut',
+					duration: 0.3
 				}, function(){
 					$target.remove();
 					callback();
-				});			
+				});
 			};
 		};
 
 		init();
 	}
 });
-define('NavigatorController',['NavigatorView', 'async', 'underscore', 'backbone', 'parsequery', 'jquery'], function(NavigatorView, async){
+
+define('NavigatorController',['NavigatorView', 'async', 'q', 'underscore', 'backbone', 'parsequery', 'jquery'], function(NavigatorView, async, q){
 	return NavigatorController;
-	
+
 	/**
-	 * Initializes backbone-router and start Backbone.history. 
-	 * 
+	 * Initializes backbone-router and start Backbone.history.
+	 *
 	 */
 	function NavigatorController(args){
 		var scope = this;
-		var view = undefined;	
-		var currentContentController = undefined;		
+		var view = undefined;
+		var currentContentController = undefined;
 		var router = undefined; // Backbone.Router
 		var pageRootPath = ''; // is set to page's root path (form where it is served)
-		
-		this.contentRegister = {};		
+
+		this.contentRegister = {};
 		this.defaultContent = undefined;
 		this.targetContent = '.content-container';
-		
+
 		function init(){
-			scope.applyOptions(args);			
+			scope.applyOptions(args);
 			_.bindAll.apply(_,[scope].concat(_.functions(scope)));
-			view = new NavigatorView({controller: scope});	
+			view = new NavigatorView({controller: scope});
 			initRouter();
 		}
-		
+
 		this.applyOptions = function(args){
 			_.extend(this, _.pick(args, ['contentRegister', 'defaultContent', 'targetContent']));
 		}
-		
+
 		function initRouter(){
 			var Router = Backbone.Router.extend({
 				  routes: {
-					    '*path': showContent, // matches all path and splits query-part	 
+					    '*path': showContent, // matches all path and splits query-part
 					  }});
 			router = new Router();
 			Backbone.history.start({pushState: true});
 		}
-		
+
 		/**
 		 * Based on the given parameters requires for the corresponding controller,
 		 * initiates and triggers page-transition on pageView.
@@ -100,48 +101,73 @@ define('NavigatorController',['NavigatorView', 'async', 'underscore', 'backbone'
 			pageRootPath = pageRootPath || path; // first time-set
 			var urlState = jQuery.parseQuery(query);
 			urlState.content = urlState.content || scope.defaultContent;
-			var controllerUri = scope.contentRegister[urlState.content];			
+			var controllerUri = scope.contentRegister[urlState.content];
 			if(!controllerUri){
 				throw new Error('This content-name is not registered, '+urlState.content);
 			}
-			require([controllerUri], function(ContentController){		
+			require([controllerUri], function(ContentController){
 				if(ContentController.__esModule){
 					ContentController = ContentController[_.functions(ContentController)[0]];
 				}
-				
+
 				var formerContentController = currentContentController;
 				currentContentController = new ContentController(urlState);
 				if(!currentContentController.init){
 					throw new Error('ContentController '+currentContentController.constructor+' has no init-method, consider '+
 							' to inherit from a BaseContentController instance via alfnavigator.ContentController ');
-				}				
+				}
 				currentContentController.init(function(){
 					async.series([view.createHideContentTask(formerContentController),
-					              view.createShowContentTask(currentContentController)]);
+					              view.createShowContentTask(currentContentController),
+												createContentReadyTask()]);
 				});
 			});
 		}
-		
+
+		// TODO belongs to the 'contentReadyCallback'-hack and will be passed in future
+		// the 'resolve' function from the promise directly:  (resolve, callback)
+		function createContentReadyTask(){
+			return function(callback){
+				scope.contentReadyCallback();
+				scope.contentReadyCallback = function(){};
+				callback();
+			};
+		}
+
+		//TODO this is a hack, which will be removed when replacing backbone by native code.
+		// called when contentController is initialzed and view replaced (navigation finished)
+		// In future this instance will be supplied directly to the 'navigate'-method and the 'showContent'
+		// is called with this callback as argument.
+		this.contentReadyCallback = function(err){};
+
 		/**
 		 * @param navTarget : via name as registered in 'contentRegister'
+		 * @returns : promise, resolve is called with 'currentContentController' as argument.
 		 */
 		this.navigate = function(navTarget){
-			router.navigate(pageRootPath+'?'+jQuery.param({content:navTarget}), {trigger: true});
+			return q.Promise(function(resolve, reject, notify) {
+				router.navigate(pageRootPath+'?'+jQuery.param({content:navTarget}), {trigger: true});
+				scope.contentReadyCallback = function(){
+					resolve(currentContentController);
+				};
+			});
 		};
-		
+
 		init();
 	}
 });
-define('BaseContentController',['underscore'], function(){	
+
+define('BaseContentController',['underscore'], function(){
 	/**
 	 * Abstract-layer for all content-controller.
 	 * @param args : urlState (query-params from current-url)
 	 */
 	function BaseContentController(args){}
-	
+
+	// this way of implementation ensures that it works together with es6 inheritance
 	BaseContentController.prototype = {
-		view: undefined,  
-		
+		view: undefined,
+
 		/**
 		 * Override in order to init controller.
 		 * Note, before the callback the view must be initialized.
@@ -150,7 +176,7 @@ define('BaseContentController',['underscore'], function(){
 		init : function(callback){
 			callback();
 		},
-		
+
 		/**
 		 * Triggers the view to add initialized content ($el) to given $content.
 		 * @param $content, the content in which the view to render
@@ -161,7 +187,7 @@ define('BaseContentController',['underscore'], function(){
 			}
 			this.view.show($content);
 		},
-		
+
 		/**
 		 * Initializes given View-constructor with given args, this controller instance
 		 * is added by default to the args.
@@ -171,22 +197,23 @@ define('BaseContentController',['underscore'], function(){
 		initPageViewTask : function(View, args){
 			var scope = this;
 			args = _.extend({controller: this}, args);
-			return function(callback){			
+			return function(callback){
 				scope.view = new View(args);
-				callback();			
+				callback();
 			};
-		}		
+		}
 	}
 	BaseContentController.prototype.constructor = BaseContentController;
-	
+
 	return BaseContentController;
 });
-define('BaseContentView',['jquery'], function(){	
+
+define('BaseContentView',['jquery'], function(){
 	/**
 	 * Abstract-layer for all content-views.
-	 * @param args : {html : 'html snippet which becomes $el'} 
+	 * @param args : {html : 'html snippet which becomes $el'}
 	 */
-	function BaseContentView(args){		
+	function BaseContentView(args){
 		var scope = this;
 
 		function init(){
@@ -195,11 +222,12 @@ define('BaseContentView',['jquery'], function(){
 			}
 			scope.$el = jQuery(args.html); // view context
 			scope.controller = args.controller;
-		}	
+		}
 
 		init();
 	}
 
+	// this way of implementation ensures that it works together with es6 inheritance
 	BaseContentView.prototype = {
 			$el : undefined, // view context
 			controller : undefined,
@@ -214,8 +242,9 @@ define('BaseContentView',['jquery'], function(){
 
 	return BaseContentView;
 });
+
 define('alfnavigator',['NavigatorController', 'BaseContentController', 'BaseContentView', 'underscore'],
-function(NavigatorController, BaseContentController, BaseContentView){	
+function(NavigatorController, BaseContentController, BaseContentView){
 	/**
 	 * Call to instantiate.
 	 * @param args : {contentRegister: ContentRegister,
@@ -224,14 +253,14 @@ function(NavigatorController, BaseContentController, BaseContentView){
 	 * ContentRegister : {url-content-name -> path-to-content-controller},
 	 *   example: 'complexes': 'contents/complexes/ComplexesContentController'
 	 */
-	var navigator = function (args){	
+	var navigator = function (args){
 		_.extend(navigator, new NavigatorController(args));
 		navigator.BaseContentController = BaseContentController;
 		navigator.BaseContentView = BaseContentView;
-	};		
-	
+	};
+
 	/**
-	 * Creates Constructor based on the given Constr but when initializing setting an instance of 
+	 * Creates Constructor based on the given Constr but when initializing setting an instance of
 	 * BaseContentController as prototype first.
 	 * @param Constr : function
 	 */
@@ -242,20 +271,21 @@ function(NavigatorController, BaseContentController, BaseContentView){
 			return new Constr(args);
 		};
 	};
-	
+
 	/**
-	 * Creates Constructor based on the given Constr but when initializing setting an instance of 
+	 * Creates Constructor based on the given Constr but when initializing setting an instance of
 	 * BaseContentView as prototype first.
 	 * @param Constr : function
 	 */
 	navigator.ContentView = function(Constr){
-        // @param args : {html : 'html snippet which becomes $el'} 
+        // @param args : {html : 'html snippet which becomes $el'}
 		return function(args){
 			Constr.prototype = new BaseContentView(args);
 			Constr.prototype.constructor = Constr;
 			return new Constr(args);
 		};
-	};		
-	
-	return navigator;	
+	};
+
+	return navigator;
 });
+

@@ -19,6 +19,10 @@ Navigator for single-page apps giving maximal freedomness in implementation.
   to create its el.
   To both method, constructors are given which implement the specific controller/view.
 
+  Build:
+  > r.js -o build.js
+  the target is alfnavigator.js
+
   Initiate the navigator:
   navigator({...options});
 

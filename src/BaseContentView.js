@@ -1,9 +1,9 @@
-define(['jquery'], function(){	
+define(['jquery'], function(){
 	/**
 	 * Abstract-layer for all content-views.
-	 * @param args : {html : 'html snippet which becomes $el'} 
+	 * @param args : {html : 'html snippet which becomes $el'}
 	 */
-	function BaseContentView(args){		
+	function BaseContentView(args){
 		var scope = this;
 
 		function init(){
@@ -12,11 +12,12 @@ define(['jquery'], function(){
 			}
 			scope.$el = jQuery(args.html); // view context
 			scope.controller = args.controller;
-		}	
+		}
 
 		init();
 	}
 
+	// this way of implementation ensures that it works together with es6 inheritance
 	BaseContentView.prototype = {
 			$el : undefined, // view context
 			controller : undefined,

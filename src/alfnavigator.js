@@ -1,5 +1,5 @@
 define(['NavigatorController', 'BaseContentController', 'BaseContentView', 'underscore'],
-function(NavigatorController, BaseContentController, BaseContentView){	
+function(NavigatorController, BaseContentController, BaseContentView){
 	/**
 	 * Call to instantiate.
 	 * @param args : {contentRegister: ContentRegister,
@@ -8,14 +8,14 @@ function(NavigatorController, BaseContentController, BaseContentView){
 	 * ContentRegister : {url-content-name -> path-to-content-controller},
 	 *   example: 'complexes': 'contents/complexes/ComplexesContentController'
 	 */
-	var navigator = function (args){	
+	var navigator = function (args){
 		_.extend(navigator, new NavigatorController(args));
 		navigator.BaseContentController = BaseContentController;
 		navigator.BaseContentView = BaseContentView;
-	};		
-	
+	};
+
 	/**
-	 * Creates Constructor based on the given Constr but when initializing setting an instance of 
+	 * Creates Constructor based on the given Constr but when initializing setting an instance of
 	 * BaseContentController as prototype first.
 	 * @param Constr : function
 	 */
@@ -26,20 +26,20 @@ function(NavigatorController, BaseContentController, BaseContentView){
 			return new Constr(args);
 		};
 	};
-	
+
 	/**
-	 * Creates Constructor based on the given Constr but when initializing setting an instance of 
+	 * Creates Constructor based on the given Constr but when initializing setting an instance of
 	 * BaseContentView as prototype first.
 	 * @param Constr : function
 	 */
 	navigator.ContentView = function(Constr){
-        // @param args : {html : 'html snippet which becomes $el'} 
+        // @param args : {html : 'html snippet which becomes $el'}
 		return function(args){
 			Constr.prototype = new BaseContentView(args);
 			Constr.prototype.constructor = Constr;
 			return new Constr(args);
 		};
-	};		
-	
-	return navigator;	
+	};
+
+	return navigator;
 });

@@ -8,8 +8,9 @@
         "animate": "empty:",
         "parsequery": "empty:",
         "requirejs": "empty:",
-        "underscore": "empty:"
-    },   
+        "underscore": "empty:",
+        "q": "empty:"
+    },
     name: "alfnavigator",
     out: "alfnavigator.js",
     optimize: 'none'
