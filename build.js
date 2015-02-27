@@ -12,6 +12,6 @@
         "q": "empty:"
     },
     name: "alfnavigator",
-    out: "alfnavigator.js",
+    out: "target/alfnavigator.js",
     optimize: 'none'
 })

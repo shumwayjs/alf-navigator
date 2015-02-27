@@ -1,5 +1,5 @@
 # alfnavigator
-Navigator for single-page apps giving maximal freedomness in implementation.
+Navigator for single-page apps giving maximal freedom in implementation.
 
 - page navigations must be registered in 'contentRegister'
   which maps the navigation names as used in url to a contentController
