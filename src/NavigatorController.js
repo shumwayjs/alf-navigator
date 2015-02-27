@@ -15,7 +15,7 @@ define(['NavigatorView', 'async', 'q', 'underscore', 'backbone', 'parsequery', '
 		this.contentRegister = {};
 		this.defaultContent = undefined;
 		this.targetContent = '.content-container';
-		this.animation = true;
+		this.animate = true;
 
 		function init(){
 			scope.applyOptions(args);
@@ -25,7 +25,7 @@ define(['NavigatorView', 'async', 'q', 'underscore', 'backbone', 'parsequery', '
 		}
 
 		this.applyOptions = function(args){
-			_.extend(this, _.pick(args, ['contentRegister', 'defaultContent', 'targetContent']));
+			_.extend(this, _.pick(args, ['contentRegister', 'defaultContent', 'targetContent', 'animate']));
 		}
 
 		function initRouter(){
