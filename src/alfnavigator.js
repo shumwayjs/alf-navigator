@@ -4,7 +4,9 @@ function(NavigatorController, BaseContentController, BaseContentView){
 	 * Call to instantiate.
 	 * @param args : {contentRegister: ContentRegister,
 	 *                defaultContent: String (url-content-name),
-	 *                targetContent : String (the container-selector in which views are rendered, default:  '.container.content')}
+	 *                targetContent : String (the container-selector in which views are rendered, default:  '.container.content')},
+	 *                animate: true (if page-transition are animated)
+	 *
 	 * ContentRegister : {url-content-name -> path-to-content-controller},
 	 *   example: 'complexes': 'contents/complexes/ComplexesContentController'
 	 */

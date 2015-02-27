@@ -17,13 +17,18 @@ define('NavigatorView',['jquery', 'animojs'], function(){
 		this.createShowContentTask = function(contentController){
 			return function(callback){
 				contentController.show($content);
+				
+				if(!controller.animate){
+					callback();
+					return;
+				}
+				
 				contentController.view.$el.animo({
 					animation: 'fadeInDown',
 					duration: 0.3
 				}, function(){
 					callback && callback();
 				});
-
 			};
 		};
 
@@ -34,11 +39,18 @@ define('NavigatorView',['jquery', 'animojs'], function(){
 		this.createHideContentTask = function(contentController){
 			return function(callback){
 				callback = callback || function(){};
-				if(!contentController){
+				if(!contentController){					
 					callback();
 					return;
 				}
+				
 				var $target = contentController.view.$el;
+				if(!controller.animate){
+					$target.remove();
+					callback();
+					return;
+				}
+				
 				contentController.view.$el.animo({
 					animation: 'fadeOut',
 					duration: 0.3
@@ -70,6 +82,7 @@ define('NavigatorController',['NavigatorView', 'async', 'q', 'underscore', 'back
 		this.contentRegister = {};
 		this.defaultContent = undefined;
 		this.targetContent = '.content-container';
+		this.animation = true;
 
 		function init(){
 			scope.applyOptions(args);
@@ -85,25 +98,34 @@ define('NavigatorController',['NavigatorView', 'async', 'q', 'underscore', 'back
 		function initRouter(){
 			var Router = Backbone.Router.extend({
 				  routes: {
-					    '*path': showContent, // matches all path and splits query-part
+					    '*path': handleRouting, // matches all path and splits query-part
 					  }});
 			router = new Router();
 			Backbone.history.start({pushState: true});
 		}
 
 		/**
-		 * Based on the given parameters requires for the corresponding controller,
-		 * initiates and triggers page-transition on pageView.
+		 * Handles routing by extracting content from query part and calling showContent.
 		 * @param path : url-path
 		 * @param query : query-params, the 'content' is used to extract view, the rest is given the content-controller as argument
 		 */
-		function showContent(path, query){
+		function handleRouting(path, query){
 			pageRootPath = pageRootPath || path; // first time-set
 			var urlState = jQuery.parseQuery(query);
-			urlState.content = urlState.content || scope.defaultContent;
-			var controllerUri = scope.contentRegister[urlState.content];
+			showContent(urlState.content || scope.defaultContent, urlState);
+		}
+		
+		/**
+		 * Based on the given parameters requires for the corresponding controller,
+		 * initiates and triggers page-transition on pageView.		
+		 * @param content : registered name in 'contentRegister'
+		 * @param urlState : if given, ContentController is given this as argument
+		 * @param contentReady : function() - called when content is changed
+		 */
+		function showContent(content, urlState, contentReady){			
+			var controllerUri = scope.contentRegister[content];
 			if(!controllerUri){
-				throw new Error('This content-name is not registered, '+urlState.content);
+				throw new Error('This content-name is not registered, '+content);
 			}
 			require([controllerUri], function(ContentController){
 				if(ContentController.__esModule){
@@ -111,34 +133,17 @@ define('NavigatorController',['NavigatorView', 'async', 'q', 'underscore', 'back
 				}
 
 				var formerContentController = currentContentController;
-				currentContentController = new ContentController(urlState);
+				currentContentController = new ContentController(urlState || {});
 				if(!currentContentController.init){
 					throw new Error('ContentController '+currentContentController.constructor+' has no init-method, consider '+
 							' to inherit from a BaseContentController instance via alfnavigator.ContentController ');
 				}
 				currentContentController.init(function(){
 					async.series([view.createHideContentTask(formerContentController),
-					              view.createShowContentTask(currentContentController),
-												createContentReadyTask()]);
+					              view.createShowContentTask(currentContentController)], contentReady || function(){});												
 				});
 			});
-		}
-
-		// TODO belongs to the 'contentReadyCallback'-hack and will be passed in future
-		// the 'resolve' function from the promise directly:  (resolve, callback)
-		function createContentReadyTask(){
-			return function(callback){
-				scope.contentReadyCallback();
-				scope.contentReadyCallback = function(){};
-				callback();
-			};
-		}
-
-		//TODO this is a hack, which will be removed when replacing backbone by native code.
-		// called when contentController is initialzed and view replaced (navigation finished)
-		// In future this instance will be supplied directly to the 'navigate'-method and the 'showContent'
-		// is called with this callback as argument.
-		this.contentReadyCallback = function(err){};
+		}	
 
 		/**
 		 * @param navTarget : via name as registered in 'contentRegister'
@@ -146,10 +151,8 @@ define('NavigatorController',['NavigatorView', 'async', 'q', 'underscore', 'back
 		 */
 		this.navigate = function(navTarget){
 			return q.Promise(function(resolve, reject, notify) {
-				router.navigate(pageRootPath+'?'+jQuery.param({content:navTarget}), {trigger: true});
-				scope.contentReadyCallback = function(){
-					resolve(currentContentController);
-				};
+				router.navigate(pageRootPath+'?'+jQuery.param({content:navTarget}), {trigger: false});
+				showContent(navTarget, null, function(){ resolve(currentContentController); });
 			});
 		};
 
@@ -249,7 +252,9 @@ function(NavigatorController, BaseContentController, BaseContentView){
 	 * Call to instantiate.
 	 * @param args : {contentRegister: ContentRegister,
 	 *                defaultContent: String (url-content-name),
-	 *                targetContent : String (the container-selector in which views are rendered, default:  '.container.content')}
+	 *                targetContent : String (the container-selector in which views are rendered, default:  '.container.content')},
+	 *                animate: true (if page-transition are animated)
+	 *
 	 * ContentRegister : {url-content-name -> path-to-content-controller},
 	 *   example: 'complexes': 'contents/complexes/ComplexesContentController'
 	 */

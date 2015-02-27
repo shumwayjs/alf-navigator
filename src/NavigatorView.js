@@ -17,13 +17,18 @@ define(['jquery', 'animojs'], function(){
 		this.createShowContentTask = function(contentController){
 			return function(callback){
 				contentController.show($content);
+				
+				if(!controller.animate){
+					callback();
+					return;
+				}
+				
 				contentController.view.$el.animo({
 					animation: 'fadeInDown',
 					duration: 0.3
 				}, function(){
 					callback && callback();
 				});
-
 			};
 		};
 
@@ -34,11 +39,18 @@ define(['jquery', 'animojs'], function(){
 		this.createHideContentTask = function(contentController){
 			return function(callback){
 				callback = callback || function(){};
-				if(!contentController){
+				if(!contentController){					
 					callback();
 					return;
 				}
+				
 				var $target = contentController.view.$el;
+				if(!controller.animate){
+					$target.remove();
+					callback();
+					return;
+				}
+				
 				contentController.view.$el.animo({
 					animation: 'fadeOut',
 					duration: 0.3
