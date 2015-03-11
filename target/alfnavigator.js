@@ -127,6 +127,7 @@ define('NavigatorController',['NavigatorView', 'async', 'q', 'underscore', 'back
 			if(!controllerUri){
 				throw new Error('This content-name is not registered, '+content);
 			}
+			currentContentController && currentContentController.beforeNavigate();
 			require([controllerUri], function(ContentController){
 				if(ContentController.__esModule){
 					ContentController = ContentController[_.functions(ContentController)[0]];
@@ -190,6 +191,13 @@ define('BaseContentController',['underscore'], function(){
 			}
 			this.view.show($content);
 		},
+		
+		/**
+		 * Called when user navigate away from this content.
+		 * The call takes place before the new-content request is performed.
+		 * This enables to show loading notification.
+		 */
+		beforeNavigate : function(){},
 
 		/**
 		 * Initializes given View-constructor with given args, this controller instance

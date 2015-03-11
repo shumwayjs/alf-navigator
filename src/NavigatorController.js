@@ -60,6 +60,7 @@ define(['NavigatorView', 'async', 'q', 'underscore', 'backbone', 'parsequery', '
 			if(!controllerUri){
 				throw new Error('This content-name is not registered, '+content);
 			}
+			currentContentController && currentContentController.beforeNavigate();
 			require([controllerUri], function(ContentController){
 				if(ContentController.__esModule){
 					ContentController = ContentController[_.functions(ContentController)[0]];

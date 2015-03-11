@@ -19,6 +19,7 @@
   "devDependencies": {
     "mocha": "~2.1.0",
     "chai": "~2.1.0",
-    "sinon": "~1.12.2"
+    "sinon": "~1.12.2",
+    "lolex": "https://raw.githubusercontent.com/sinonjs/lolex/master/lolex.js"
   }
 }

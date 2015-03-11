@@ -12,7 +12,9 @@ require.config({
     	   'async':'libs/async/lib/async',
     	   'css': 'libs/require-css/css',
     	   'text': 'libs/text/text',
-         'q': 'libs/q/q'
+         'q': 'libs/q/q',
+         'sinon': 'libs/sinon/lib/sinon',
+         'lolex': 'libs/lolex/index'
     },
     shim:{
     	'bootstrap':{

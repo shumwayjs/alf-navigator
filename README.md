@@ -26,8 +26,19 @@ Navigator for single-page apps giving maximal freedom in implementation.
   Initiate the navigator:
   navigator({...options});
 
-  Use the navigator:
-  navigator
+  Use the navigator:  
+  navigator.navigate(content);
+  This call navigate to the registered content-name and returns a promise.
+  The promise is fulfilled when the new content is fully rendered on page.
+  
+  Events:
+  - when navigating, before the request for new page contents is made, 'beforeNavigate' is called
+    on the current ContentController. This may be used to notify the user about loading resources.  
+  
+  
+  Test:
+  >node app.js
+  then point browser to: localhost:3000/index.html
 
   New mvc's which shall become navigation target must be registered in navigator.contentRegister
 
