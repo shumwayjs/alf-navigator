@@ -27,7 +27,7 @@ describe("alfnavigator", function() {
 					sinon.spy(firstContentController, 'beforeNavigate');
 					done();
 				})
-				.done(null, done);;
+				.done(null, done);
 			});
 		});
 
@@ -43,7 +43,6 @@ describe("alfnavigator", function() {
 				.done(null, done);
 			});
 		});
-		
 
 	});
 

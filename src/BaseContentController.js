@@ -12,7 +12,7 @@ define(['underscore'], function(){
 		/**
 		 * Override in order to init controller.
 		 * Note, before the callback the view must be initialized.
-		 * @param callback : must be called to signal ready with init.
+		 * @param callback : function(err), must be called to signal ready with init.
 		 */
 		init : function(callback){
 			callback();

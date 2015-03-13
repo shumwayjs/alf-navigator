@@ -5,7 +5,8 @@ function(NavigatorController, BaseContentController, BaseContentView){
 	 * @param args : {contentRegister: ContentRegister,
 	 *                defaultContent: String (url-content-name),
 	 *                targetContent : String (the container-selector in which views are rendered, default:  '.container.content')},
-	 *                animate: true (if page-transition are animated)
+	 *                animate: true (if page-transition are animated),
+	 *								onContentInitError: function(err) // called when ContentController init fails
 	 *
 	 * ContentRegister : {url-content-name -> path-to-content-controller},
 	 *   example: 'complexes': 'contents/complexes/ComplexesContentController'
