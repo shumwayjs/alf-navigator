@@ -59,6 +59,7 @@ define(['NavigatorView', 'async', 'q', 'underscore', 'backbone', 'parsequery', '
 		 * @param contentReady : function() - called when content is changed
 		 */
 		function showContent(content, urlState, contentReady){
+			contentReady = contentReady || function(){};
 			var controllerUri = scope.contentRegister[content];
 			if(!controllerUri){
 				throw new Error('This content-name is not registered, '+content);
@@ -70,18 +71,20 @@ define(['NavigatorView', 'async', 'q', 'underscore', 'backbone', 'parsequery', '
 				}
 
 				var formerContentController = currentContentController;
-				currentContentController = new ContentController(urlState || {});
-				if(!currentContentController.init){
-					throw new Error('ContentController '+currentContentController.constructor+' has no init-method, consider '+
+				var contentController = new ContentController(urlState || {});
+				if(!contentController.init){
+					throw new Error('ContentController '+contentController.constructor+' has no init-method, consider '+
 							' to inherit from a BaseContentController instance via alfnavigator.ContentController ');
 				}
-				currentContentController.init(function(err){
+				contentController.init(function(err){
 					if(err){
 						scope.onContentInitError(err);
+						contentReady(err);
 						return;
 					}
+					currentContentController = contentController;
 					async.series([view.createHideContentTask(formerContentController),
-					              view.createShowContentTask(currentContentController)], contentReady || function(){});
+					              view.createShowContentTask(currentContentController)], contentReady);
 				});
 			});
 		}
@@ -93,7 +96,13 @@ define(['NavigatorView', 'async', 'q', 'underscore', 'backbone', 'parsequery', '
 		this.navigate = function(navTarget){
 			return q.Promise(function(resolve, reject, notify) {
 				router.navigate(pageRootPath+'?'+jQuery.param({content:navTarget}), {trigger: false});
-				showContent(navTarget, null, function(){ resolve(currentContentController); });
+				showContent(navTarget, null, function(err){
+					if(err){
+						reject({err: err, currentContentController: currentContentController});
+					} else{
+						resolve(currentContentController);
+					}					
+				});
 			});
 		};
 
